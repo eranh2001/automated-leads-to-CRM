@@ -1,0 +1,241 @@
+{
+  "name": "Leads&Hubspot&Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "31d96ea2-ea12-4046-8c49-a2ef447e4772",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e2909f8a-7ebb-4f26-bd3d-f47e8b190481",
+      "name": "Webhook",
+      "webhookId": "31d96ea2-ea12-4046-8c49-a2ef447e4772"
+    },
+    {
+      "parameters": {
+        "operation": "emailVerifier",
+        "email": "={{ $json.body.email }}"
+      },
+      "type": "n8n-nodes-base.hunter",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "eb85482c-8d7f-4104-bf51-90f1fe142f10",
+      "name": "Hunter",
+      "credentials": {
+        "hunterApi": {
+          "id": "2sb8CXYhQVewOc6b",
+          "name": "Hunter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "99ae5dce-e4ad-4989-8a91-b04a17839e96",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "invalid",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "60fbd1b9-2f39-4552-8832-e4377ce8653e",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "disposable",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "20677d83-1b46-4e0f-a1e8-890aef584a9f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B4UTSGDA5",
+          "mode": "id"
+        },
+        "text": "=error! Lead's email  ({{$json.email}})  is incorrect. needs follow up",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        96
+      ],
+      "id": "7ca7999e-1b33-4f84-93ab-0346cd2e6fd1",
+      "name": "email error notify sales team",
+      "webhookId": "3cc5a5f8-df29-4446-8524-6903ae50938c",
+      "credentials": {
+        "slackApi": {
+          "id": "tMww33jIjvrmTd2k",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ $('Webhook').item.json.body.email }}",
+        "additionalFields": {
+          "associatedCompanyId": 436082176211,
+          "companyName": "={{ $('Webhook').item.json.body.company }}",
+          "enrichedEmailBounceDetected": false,
+          "firstName": "={{ $('Webhook').item.json.body.name }}",
+          "industry": "={{ $('Webhook').item.json.body.service }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "55c79638-d676-4ef7-b8a8-e69f4c36c843",
+      "name": "Create or update a contact",
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "aba7ydhiypArDWXW",
+          "name": "HubSpot OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BE990BWVD",
+          "mode": "id"
+        },
+        "text": "=A new lead as arrived:\n\nName: {{ $('Webhook').item.json.body.name }}\nEmail:{{ $('Webhook').item.json.body.email }}\nCompany:{{ $('Webhook').item.json.body.company }}\nService:{{ $('Webhook').item.json.body.service }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "40e15d6e-1cf8-469f-ada3-1b833a645e39",
+      "name": "notify sales team: A new lead has arrived",
+      "webhookId": "881b1f0c-cb19-4f2a-9780-7b76d38e462e",
+      "credentials": {
+        "slackApi": {
+          "id": "tMww33jIjvrmTd2k",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Hunter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hunter": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create or update a contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "email error notify sales team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or update a contact": {
+      "main": [
+        [
+          {
+            "node": "notify sales team: A new lead has arrived",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "GooGarnVTCdBwqMa",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "fe293677-cfb8-47a3-a89b-10180dada741",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b841f95498d3b48a5fcd832e4e741fe811275e87c53b729b900a5ec88b629438"
+  },
+  "nodeGroups": [],
+  "id": "9qSdXcye0pQQDGin",
+  "tags": []
+}
